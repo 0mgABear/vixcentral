@@ -146,7 +146,6 @@ def main():
                 )
                 tg_send(msg)
 
-    # 3) 5 Consecutive Days Drop Alert
     if len(data) == 5:
         vals = [x.get("value") for x in data]
         if all(vals[i] < vals[i - 1] for i in range(1, 5)):

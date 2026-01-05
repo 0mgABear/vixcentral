@@ -83,7 +83,7 @@ def main():
     value = scrape_contango()
     today_str = today.strftime("%d %b %Y")
 
-    tg_send(f"{today_str} VIX Contango (Month 1): {value:.2f}%")
+    tg_send(f"{today_str} VIX Central Contango: {value:.2f}%")
 
 
 if __name__ == "__main__":

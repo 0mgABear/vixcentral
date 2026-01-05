@@ -2,12 +2,8 @@ name: VIX Contango Bot
 
 on:
   schedule:
-    # 10:00 PM SGT (UTC+8) = 14:00 UTC, Mon–Fri
-    - cron: "0 14 * * 1-5"
+    - cron: "*/5 * * * *" # TEMP: every 5 minutes
   workflow_dispatch: {}
-
-permissions:
-  contents: write
 
 jobs:
   run:
@@ -27,20 +23,8 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps chromium
 
-      - name: Run bot
+      - name: Run free bot
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-        run: python vixbot.py
-
-      - name: Commit updated data.json (if changed)
-        run: |
-          if git diff --quiet; then
-            echo "No changes to commit."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data.json
-          git commit -m "Update contango data"
-          git push
+        run: python vixbot_free.py

@@ -10,15 +10,10 @@ from pathlib import Path
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 
-# Load local .env if present (safe in GitHub Actions too)
 load_dotenv(dotenv_path=Path(__file__).with_name(".env"))
 
 URL = "http://vixcentral.com/"
 DATA_PATH = Path(__file__).with_name("data.json")
-
-
-def is_weekday(d):
-    return d.weekday() < 5  # Mon–Fri
 
 
 def fmt_date_iso(iso_str):
@@ -61,14 +56,6 @@ def scrape_contango_once():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
-
-        page.set_extra_http_headers(
-            {
-                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0 Safari/537.36"
-            }
-        )
 
         page.goto(URL, wait_until="domcontentloaded", timeout=90000)
         page.wait_for_selector("#basicTable", timeout=90000)
@@ -113,9 +100,6 @@ def scrape_contango():
 
 def main():
     today = date.today()
-
-    if not is_weekday(today):
-        return
 
     today_iso = today.isoformat()          
     today_disp = today.strftime("%d %b %Y") 

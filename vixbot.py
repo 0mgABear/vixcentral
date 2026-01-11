@@ -2,8 +2,7 @@ import json
 import os
 import re
 import time
-import urllib.parse
-import urllib.request
+import requests
 from datetime import date
 from pathlib import Path
 
@@ -25,22 +24,18 @@ def tg_send(msg):
     chat_id = os.getenv("TELEGRAM_CHAT_ID") or os.getenv("TELEGRAM_CHANNEL_ID")
 
     if not token or not chat_id:
-        print("Telegram secrets not set; skipping send.")
-        return
+        raise RuntimeError("Telegram secrets not set")
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    data = urllib.parse.urlencode(
-        {
-            "chat_id": chat_id,  # can be @channel_handle or numeric id (-100...)
-            "text": msg,
-            "disable_web_page_preview": "true",
-        }
-    ).encode("utf-8")
 
-    req = urllib.request.Request(url, data=data, method="POST")
-    with urllib.request.urlopen(req, timeout=20) as r:
-        r.read()
+    payload = {
+        "chat_id": chat_id,
+        "text": msg,
+        "disable_web_page_preview": "true",
+    }
 
+    r = requests.post(url, data=payload, timeout=20)
+    r.raise_for_status()
 
 def load_data():
     if not DATA_PATH.exists():
@@ -93,7 +88,6 @@ def scrape_contango():
             return scrape_contango_once()
         except Exception as e:
             last_err = e
-            print(f"Scrape attempt {attempt} failed: {e}")
             time.sleep(attempt)
     raise last_err
 

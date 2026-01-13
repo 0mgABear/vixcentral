@@ -49,25 +49,29 @@ def save_data(data):
 
 def scrape_contango_once():
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+        try:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
 
-        page.goto(URL, wait_until="domcontentloaded", timeout=90000)
-        page.wait_for_selector("#basicTable", timeout=90000)
+            page.goto(URL, wait_until="domcontentloaded", timeout=90000)
+            page.wait_for_selector("#basicTable", timeout=90000)
 
-        page.wait_for_selector(
-            'xpath=//*[@id="basicTable"]//th[normalize-space(.)="% Contango"]'
-            '/following::td[contains(normalize-space(.), "%")]',
-            timeout=90000,
-        )
+            page.wait_for_selector(
+                'xpath=//*[@id="basicTable"]//th[normalize-space(.)="% Contango"]'
+                '/following::td[contains(normalize-space(.), "%")]',
+                timeout=90000,
+            )
 
-        cell = page.locator(
-            'xpath=//*[@id="basicTable"]//th[normalize-space(.)="% Contango"]'
-            '/following::th[normalize-space(.)="1"]/following-sibling::td[1]'
-        ).first
+            cell = page.locator(
+                'xpath=//*[@id="basicTable"]//th[normalize-space(.)="% Contango"]'
+                '/following::th[normalize-space(.)="1"]/following-sibling::td[1]'
+            ).first
 
-        text = cell.inner_text().strip()
-        browser.close()
+            cell.wait_for(state="visible", timeout=90000) 
+            text = cell.inner_text(timeout=90000).strip()
+        finally:
+            if browser:
+                browser.close()
 
     m = re.search(r"(-?\d+(\.\d+)?)\s*%", text)
     if not m:

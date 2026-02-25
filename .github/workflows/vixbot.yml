@@ -25,11 +25,23 @@ jobs:
           pip install -r requirements.txt
           playwright install --with-deps chromium
 
-      - name: Run bot
+      - name: Run bot (with retries)
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
-        run: python vixbot.py
+        run: |
+          set -e
+          attempts=3
+          for i in $(seq 1 $attempts); do
+            echo "Attempt $i/$attempts..."
+            python vixbot.py && exit 0
+            code=$?
+            echo "Run failed with exit code $code"
+            if [ $i -lt $attempts ]; then
+              sleep $((i*30))
+            fi
+          done
+          exit $code
 
       - name: Commit updated data.json (if changed)
         run: |

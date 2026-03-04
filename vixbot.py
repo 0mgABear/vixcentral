@@ -1,17 +1,15 @@
 import json
 import os
-import re
 import time
 import requests
 from datetime import date
 from pathlib import Path
 
 from dotenv import load_dotenv
-from playwright.sync_api import sync_playwright
 
 load_dotenv(dotenv_path=Path(__file__).with_name(".env"))
 
-URL = "http://vixcentral.com/"
+url = "http://vixcentral.com/ajax_update"
 DATA_PATH = Path(__file__).with_name("data.json")
 
 
@@ -48,42 +46,37 @@ def save_data(data):
 
 
 def scrape_contango_once():
-    with sync_playwright() as p:
-        try:
-            browser = p.chromium.launch(headless=True)
-            page = browser.new_page()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "X-Requested-With": "XMLHttpRequest",
+        "Referer": "http://vixcentral.com/",
+    }
 
-            page.goto(URL, wait_until="domcontentloaded", timeout=90000)
-            page.wait_for_selector("#basicTable", timeout=90000)
+    r = requests.get(
+        url,
+        params={"_": int(time.time() * 1000)},
+        headers=headers,
+        timeout=30,
+    )
+    r.raise_for_status()
 
-            page.wait_for_selector(
-                'xpath=//*[@id="basicTable"]//th[normalize-space(.)="% Contango"]'
-                '/following::td[contains(normalize-space(.), "%")]',
-                timeout=90000,
-            )
+    data = r.json()
 
-            cell = page.locator(
-                'xpath=//*[@id="basicTable"]//th[normalize-space(.)="% Contango"]'
-                '/following::th[normalize-space(.)="1"]/following-sibling::td[1]'
-            ).first
+    last = data[2]
 
-            cell.wait_for(state="visible", timeout=90000) 
-            text = cell.inner_text(timeout=90000).strip()
-        finally:
-            if browser:
-                browser.close()
+    if not isinstance(last, list) or len(last) < 2:
+        raise RuntimeError(f"Unexpected ajax_update format: {last!r}")
 
-    m = re.search(r"(-?\d+(\.\d+)?)\s*%", text)
-    if not m:
-        raise RuntimeError(f"Unexpected contango format: {text!r}")
+    f1 = float(last[0])
+    f2 = float(last[1])
 
-    val = float(m.group(1))
+    val = (f2 / f1 - 1.0) * 100.0
 
     if val < -80 or val > 200:
-        raise RuntimeError(f"Scraped contango out of range: {val} (raw: {text!r})")
+        raise RuntimeError(f"Contango out of range: {val}")
 
     return val
-
 
 def scrape_contango():
     last_err = None
